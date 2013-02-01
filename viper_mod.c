@@ -15,19 +15,21 @@
 #define TIMECHECK			1000000
 #define FIN_IDENT			"--viper_final--"
 #define SCREENWIDTH			80
-# define SCREENHEIGTH		24
+#define SCREENHEIGTH		24
+#define MAXSTR				255
+#define NCHRUSER			80
 
 struct crack_input
 {
-	char ci_user[80];						// username
-	char ci_pass[MAXENCPWDLENGTH+1];		// encrypted password
-	char ci_cset[255];						// characterset to use
+	char *ci_user;						// username
+	char *ci_pass;		// encrypted password
+	char *ci_cset;						// characterset to use
 	char ci_rf;								// runtime limit
 	int  ci_pwl;    						// password max length
 	int  ci_pws;							// password min length
 	int  ci_ui;								// console update interval
-	char ci_dnum[255];						// status for each digit
-	char ci_pf[255];						// progressfile name
+	char *ci_dnum;						// status for each digit
+	char *ci_pf;						// progressfile name
 	int  ci_vo;								// verbose output
 };
 
@@ -82,7 +84,8 @@ void convert(double sec_dur, char * strf_duration)
 void crack(struct crack_input *lsf_out_ptr)
 {
 	struct crack_input lsf_out;
-	memcpy (&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
+	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
+	//memcpy (&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
 	int count				= 0;
 	int cps					= 0;
 	int varlen				= strlen(lsf_out.ci_cset);
@@ -328,7 +331,7 @@ void crack(struct crack_input *lsf_out_ptr)
 int main(int argc, char *argv[])
 {
 	char *file = 0;							// filename passwordfile
-	char pass[MAXENCPWDLENGTH+1] = "";		// encrypted password
+	char *pass = malloc(MAXENCPWDLENGTH+1);		// encrypted password
 	char *user = 0;							// username in passwordfile
 	char *lsf  = 0;							// filename loadsourcefile
 	char *pf   = 0;							// filename progressfile
@@ -342,12 +345,9 @@ int main(int argc, char *argv[])
 	FILE *fp_lsf;							// loadsourcefile
 	FILE *fp_file;							// passwordfile
 	FILE *fp_cset;							// character set file
-	char line[255];							// tmp buffer
-	char vp_stat[255];						// last saved status
-	struct crack_input *lsf_out_ptr;
+	char *line = malloc(255);				// tmp buffer
+	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
-
-	lsf_out_ptr = &lsf_out;
 
 	printf("\nViper v1.5 (Hale 05/12/2000) - C version by Frank4DD (05/22/00)\n");
 	printf("Wiltered Fire - www.wilter.com/wf\n\n");
@@ -389,6 +389,19 @@ int main(int argc, char *argv[])
 			exit(-1);
 		}
 	}
+
+/* */
+	lsf_out.ci_cset = malloc(MAXSTR);
+	lsf_out.ci_pass = malloc(MAXENCPWDLENGTH+1);
+	lsf_out.ci_user = malloc(NCHRUSER);
+	lsf_out.ci_dnum = malloc(MAXSTR);
+	lsf_out.ci_pf = malloc(MAXSTR);
+	lsf_out.ci_rf = 0;
+	lsf_out.ci_pwl = 0;
+	lsf_out.ci_pws = 0;
+	lsf_out.ci_ui = 0;
+	lsf_out.ci_vo = 0;
+/* */
 
 	/* process command line arguments */
 	for (i = 1; i < argc; i++)
@@ -441,7 +454,7 @@ int main(int argc, char *argv[])
 		lsf_out.ci_rf = 0;
 		lsf_out.ci_vo = vo;
 		printf("...loaded parameters from file %s.\n", lsf);
-		crack(lsf_out_ptr);
+		crack(&lsf_out);
 	}
 
 	/* check for required arguments */
@@ -465,15 +478,21 @@ int main(int argc, char *argv[])
 
 	while ( (fscanf (fp_file, "%s", line) != EOF) )
 	{
+		char *result = NULL;
 		if (! (strcmp (user, strtok(line, ":"))) )
 		{
-			strcpy (pass, strtok(NULL, ":"));
-			if ( !pass || (strlen(pass)) <  4 )
-			{
-				printf("Error: Bad password for user %s!\n", user);
-				exit(-1);
+			result = strtok(NULL, ":");
+			if (result != NULL) {
+				
+				if ( strlen(result) <  4 )
+				{
+					printf("Error: Bad password for user %s!\n", user);
+					exit(-1);
+				}
+				strcpy(pass, result);
+				printf("Found: user %s%s%s\n", user, " pw:", pass);
+				break;
 			}
-			printf("Found: user %s%s%s\n", user, " pw:", pass);
 		}
 	}
 	fclose(fp_file);
@@ -520,7 +539,7 @@ int main(int argc, char *argv[])
 	lsf_out.ci_ui = ui;
 	lsf_out.ci_vo = vo;
 	printf("...command line parameters loaded.\n");
-	crack(lsf_out_ptr);
+	crack(&lsf_out);
 	return 0;
 }
 
@@ -547,7 +566,8 @@ void help ()
 
 void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start)
 {
-	struct crack_input lsf_out = *lsf_out_ptr;
+	struct crack_input lsf_out;
+	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
 	static struct tm act_time;
 	double end_time;
 	int r;
