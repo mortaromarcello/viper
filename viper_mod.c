@@ -330,7 +330,7 @@ void crack(struct crack_input *lsf_out_ptr)
 int main(int argc, char *argv[])
 {
 	char *file = 0;							// filename passwordfile
-	char *pass = malloc(MAXENCPWDLENGTH+1);		// encrypted password
+	char *pass = malloc(MAXENCPWDLENGTH+1);	// encrypted password
 	char *user = 0;							// username in passwordfile
 	char *lsf  = 0;							// filename loadsourcefile
 	char *pf   = 0;							// filename progressfile
