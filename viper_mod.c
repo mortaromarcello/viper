@@ -22,25 +22,25 @@
 struct crack_input
 {
 	char *ci_user;						// username
-	char *ci_pass;		// encrypted password
+	char *ci_pass;						// encrypted password
 	char *ci_cset;						// characterset to use
-	char ci_rf;								// runtime limit
-	int  ci_pwl;    						// password max length
-	int  ci_pws;							// password min length
-	int  ci_ui;								// console update interval
+	char ci_rf;							// runtime limit
+	int  ci_pwl;						// password max length
+	int  ci_pws;						// password min length
+	int  ci_ui;							// console update interval
 	char *ci_dnum;						// status for each digit
 	char *ci_pf;						// progressfile name
-	int  ci_vo;								// verbose output
+	int  ci_vo;							// verbose output
 };
 
 // struct    crack_input lsf_out;
-struct    tm start_time, last_time;			// time structs
-char     checkpass[17];						// cleartext passphrase
-char     message[7][81];					// result message
-char     time_done[17];						// passed time
-char     time_togo[17];						// calculated time to run
-time_t read_time;							// actual time
-FILE * fp_pf;								// progressfile
+struct	tm start_time, last_time;		// time structs
+char	checkpass[17];					// cleartext passphrase
+char	message[7][81];				// result message
+char	time_done[17];					// passed time
+char	time_togo[17];					// calculated time to run
+time_t	read_time;						// actual time
+FILE *	fp_pf;							// progressfile
 
 /*                                                                    */
 
@@ -85,7 +85,6 @@ void crack(struct crack_input *lsf_out_ptr)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
-	//memcpy (&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
 	int count				= 0;
 	int cps					= 0;
 	int varlen				= strlen(lsf_out.ci_cset);
@@ -182,7 +181,7 @@ void crack(struct crack_input *lsf_out_ptr)
 #ifdef DEBUG
 			for (z=0; z<= (sizeof(passprg)/sizeof(int)); z++)
 			{ printf("[%.2d]", passprg[z]);}
-			printf(" - phrase: %s", checkpass); // fine debug
+			printf(" - phrase: %s", checkpass);
 #endif
 			/* Here is where the magic happens */
 			//testpass = (char *) fcrypt(checkpass, salt);
@@ -391,16 +390,16 @@ int main(int argc, char *argv[])
 	}
 
 /* */
-	lsf_out.ci_cset = malloc(MAXSTR);
-	lsf_out.ci_pass = malloc(MAXENCPWDLENGTH+1);
-	lsf_out.ci_user = malloc(NCHRUSER);
-	lsf_out.ci_dnum = malloc(MAXSTR);
-	lsf_out.ci_pf = malloc(MAXSTR);
-	lsf_out.ci_rf = 0;
-	lsf_out.ci_pwl = 0;
-	lsf_out.ci_pws = 0;
-	lsf_out.ci_ui = 0;
-	lsf_out.ci_vo = 0;
+	lsf_out.ci_cset	= malloc(MAXSTR);
+	lsf_out.ci_pass	= malloc(MAXENCPWDLENGTH+1);
+	lsf_out.ci_user	= malloc(NCHRUSER);
+	lsf_out.ci_dnum	= malloc(MAXSTR);
+	lsf_out.ci_pf	= malloc(MAXSTR);
+	lsf_out.ci_rf	= 0;
+	lsf_out.ci_pwl	= 0;
+	lsf_out.ci_pws	= 0;
+	lsf_out.ci_ui	= 0;
+	lsf_out.ci_vo	= 0;
 /* */
 
 	/* process command line arguments */
