@@ -1,7 +1,6 @@
 viper
 =====
 Viper is a program to crack unix password with brute-force. More information is on the website author: http://www.frank4dd.com/sw/viper/
-Viper modified version by pippo60gd - original version is located in:
 
 Viper modified version by pippo60gd - original version is located in:
 Viper v1.5 (Hale 05/12/2000) - C version by Frank4DD (05/22/00)
