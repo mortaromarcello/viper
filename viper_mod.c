@@ -570,6 +570,7 @@ int main(int argc, char *argv[])
 
 void help ()
 {
+	int i;
 	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
 	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
 	printf("\t-lsf <file>  Load saved file from previous session\n");
@@ -581,6 +582,9 @@ void help ()
 			  DEFAULTPWLENGTH, MAXPASSWDLENGTH);
 	printf("\t-ui #        Console update interval (in minutes - default 10)\n");
 	printf("\t-v           Verbose output\n");
+	printf("Internal character sets:\n");
+	for (i=0;i<5;i++)
+		printf("set %d: %s (%d characters)\n", i, charsets[i], (int)strlen(charsets[i]));
 }
 
 /* ## begin results sub ## */

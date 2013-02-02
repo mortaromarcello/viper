@@ -17,4 +17,9 @@ More information is on the website author: http://www.frank4dd.com/sw/viper/
 	-pwl #       Maximum password length (default 8 - maximum 16)
 	-ui #        Console update interval (in minutes - default 10)
 	-v           Verbose output
-
+Internal character sets:
+set 0: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}\|;':",./<>?` (93 characters)
+set 1: abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 (62 characters)
+set 2: abcdefghijklmnopqrstuvwxyz1234567890 (36 characters)
+set 3: abcdefghijklmnopqrstuvwxyz (26 characters)
+set 4: 1234567890 (10 characters)
