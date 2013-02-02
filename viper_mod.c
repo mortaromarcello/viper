@@ -23,7 +23,7 @@ char *charsets[] = {
 		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}\\|;\':\",./<>?`",
 		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
 		"abcdefghijklmnopqrstuvwxyz1234567890",
-		"abcdefghijklmnopqrstuvwxyz" ,
+		"abcdefghijklmnopqrstuvwxyz",
 		"1234567890"
 };
 
@@ -124,7 +124,7 @@ void crack(struct crack_input *lsf_out_ptr)
 #endif
 	/* fine debug */
 
-	printf("Character set is %d chars long\n", varlen);
+	printf("Character set is %d chars long.\nCharacters used:%s\n", varlen, lsf_out.ci_cset);
 
 	/* get current time */
 	time(&read_time);
@@ -136,11 +136,11 @@ void crack(struct crack_input *lsf_out_ptr)
 	if (strlen(lsf_out.ci_dnum))
 	{
 		passprg[0]=atoi(strtok(lsf_out.ci_dnum, ",")); i=1;
-		printf("Saved progress is: %d", passprg[0]);
+		printf("Saved progress is: %d (%c)", passprg[0], lsf_out.ci_cset[passprg[0]]);
 		while ( (pass = strtok(NULL, ",")) )
 		{
 			if (pass && atoi(pass) < 128){passprg[i]=atoi(pass);}
-			printf(" %d", passprg[i]); i++;
+			printf(" %d (%c)", passprg[i], lsf_out.ci_cset[passprg[i]]); i++;
 		}
 		printf("\n");
 		startpws = i;
@@ -343,7 +343,7 @@ int main(int argc, char *argv[])
 	char *lsf  = 0;							// filename loadsourcefile
 	char *pf   = 0;							// filename progressfile
 	int  rf    = 0;							// runtime limit
-	int  chr   = 0;							// characterset
+	int  chr   = 1;							// characterset
 	int  pws   = 1;							// min passwordlength
 	int  pwl   = DEFAULTPWLENGTH;			// max passwordlength
 	int  ui    = 10;						// console update interval
@@ -356,6 +356,7 @@ int main(int argc, char *argv[])
 	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
 
+	printf("\nViper modified version by pippo60gd - original version is located in:");
 	printf("\nViper v1.5 (Hale 05/12/2000) - C version by Frank4DD (05/22/00)\n");
 	printf("Wiltered Fire - www.wilter.com/wf\n\n");
 
@@ -511,7 +512,7 @@ int main(int argc, char *argv[])
 
 	/* load character set */
 	strcpy(lsf_out.ci_cset, charsets[chr]);
-	printf("Charset %d %s\n", chr, lsf_out.ci_cset);
+	printf("Charset %d\n", chr);
 
 /*
 	if ( (fp_cset = fopen(CHARSET_FILE, "r")) == NULL )
@@ -574,7 +575,7 @@ void help ()
 	printf("\t-lsf <file>  Load saved file from previous session\n");
 	printf("\t-pf <file>   Save progress to file at update interval\n");
 	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
-	printf("\t-c #         Character set from charset.ini to use (default 1)\n");
+	printf("\t-c #         Character set from internal character set to use (default 1)\n");
 	printf("\t-pws #       Minimum password length (starting value, default 1)\n");
 	printf("\t-pwl #       Maximum password length (default %d - maximum %d)\n",
 			  DEFAULTPWLENGTH, MAXPASSWDLENGTH);
