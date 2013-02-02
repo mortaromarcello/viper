@@ -341,6 +341,7 @@ int main(int argc, char *argv[])
 	char *pass = malloc(MAXENCPWDLENGTH+1);	// encrypted password
 	char *user = 0;							// username in passwordfile
 	char *lsf  = 0;							// filename loadsourcefile
+	char *lcf  = 0;                         // filename loadcharacterset
 	char *pf   = 0;							// filename progressfile
 	int  rf    = 0;							// runtime limit
 	int  chr   = 1;							// characterset
@@ -351,7 +352,7 @@ int main(int argc, char *argv[])
 	int  i     = 0;							// loop variable
 	FILE *fp_lsf;							// loadsourcefile
 	FILE *fp_file;							// passwordfile
-//	FILE *fp_cset;							// character set file
+	FILE *fp_cset;							// character set file
 	char *line = malloc(255);				// tmp buffer
 	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
@@ -381,7 +382,7 @@ int main(int argc, char *argv[])
 	{
 		if ( (argc != 2) && (argc != 4) && (argc != 6) &&
 			(argc != 8) && (argc != 10) && (argc != 12)
-			&& (argc != 14) && (argc != 16) )
+			&& (argc != 14) && (argc != 16) && (argc != 18) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -391,7 +392,7 @@ int main(int argc, char *argv[])
 	{
 		if ( (argc != 1) && (argc != 3) && (argc != 5) &&
 			(argc != 7) && (argc != 9) && (argc != 11)
-			&& (argc != 13) && (argc != 15) )
+			&& (argc != 13) && (argc != 15) && (argc != 17) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -421,6 +422,7 @@ int main(int argc, char *argv[])
 		else if (! (strcmp (argv[i], "-ui" ))) { ui   = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-pws"))) { pws  = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-lsf"))) { lsf  =      argv[i+1] ; i++;}
+		else if (! (strcmp (argv[i], "-lcf"))) { lcf  =      argv[i+1] ; i++;}
 		else if (! (strcmp (argv[i], "-pf" ))) { pf   =      argv[i+1] ; i++;}
 		else if (! (strcmp (argv[i], "-rf" ))) { rf   = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-v"  ))) { continue; }
@@ -511,35 +513,39 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
-	strcpy(lsf_out.ci_cset, charsets[chr]);
-	printf("Charset %d\n", chr);
-
-/*
-	if ( (fp_cset = fopen(CHARSET_FILE, "r")) == NULL )
+	if ( lcf == 0 )
 	{
-		printf("Error: Can't open %s!\n", CHARSET_FILE);
-		exit(-1);
-	}
-
-	while ( (fscanf (fp_cset, "%s", line) != EOF) )
-	{
-		if ( chr == (atoi(line)) )
-		{
-			fscanf (fp_cset, "%s", lsf_out.ci_cset); break;
-		}
-	}
-
-	if ( !lsf_out.ci_cset || (strlen(lsf_out.ci_cset)) < 2 )
-	{
-		printf("Error: Bad charset %d in %s!\n", chr, CHARSET_FILE); exit(-1);
+		strcpy(lsf_out.ci_cset, charsets[chr]);
+		printf("Charset %d\n", chr);
 	}
 	else
 	{
-		printf("Found: Charset %d in %s\n", chr, CHARSET_FILE);
-	}
 
-	fclose(fp_cset);
-*/
+		if ( (fp_cset = fopen(lcf, "r")) == NULL )
+		{
+			printf("Error: Can't open %s!\n", lcf);
+			exit(-1);
+		}
+
+		while ( (fscanf (fp_cset, "%s", line) != EOF) )
+		{
+			if ( chr == (atoi(line)) )
+			{
+				fscanf (fp_cset, "%s", lsf_out.ci_cset); break;
+			}
+		}
+
+		if ( !lsf_out.ci_cset || (strlen(lsf_out.ci_cset)) < 2 )
+		{
+			printf("Error: Bad charset %d in %s!\n", chr, lcf); exit(-1);
+		}
+		else
+		{
+			printf("Found: Charset %d in %s\n", chr, lcf);
+		}
+
+		fclose(fp_cset);
+	}
 
 	/* write data in struct */
 	lsf_out.ci_rf = rf;
@@ -574,6 +580,7 @@ void help ()
 	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
 	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
 	printf("\t-lsf <file>  Load saved file from previous session\n");
+	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)");
 	printf("\t-pf <file>   Save progress to file at update interval\n");
 	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
 	printf("\t-c #         Character set from internal character set to use (default 1)\n");
