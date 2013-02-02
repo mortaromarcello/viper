@@ -341,7 +341,7 @@ int main(int argc, char *argv[])
 	char *pass = malloc(MAXENCPWDLENGTH+1);	// encrypted password
 	char *user = 0;							// username in passwordfile
 	char *lsf  = 0;							// filename loadsourcefile
-	char *lcf  = 0;                         // filename loadcharacterset
+	char *lcf  = 0;							// filename loadcharacterset
 	char *pf   = 0;							// filename progressfile
 	int  rf    = 0;							// runtime limit
 	int  chr   = 1;							// characterset
@@ -578,7 +578,7 @@ void help ()
 	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
 	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
 	printf("\t-lsf <file>  Load saved file from previous session\n");
-	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)");
+	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)\n");
 	printf("\t-pf <file>   Save progress to file at update interval\n");
 	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
 	printf("\t-c #         Character set from internal character set to use (default 1)\n");
