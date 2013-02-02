@@ -513,12 +513,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
-	if ( lcf == 0 )
-	{
-		strcpy(lsf_out.ci_cset, charsets[chr]);
-		printf("Charset %d\n", chr);
-	}
-	else
+	if ( lcf )
 	{
 
 		if ( (fp_cset = fopen(lcf, "r")) == NULL )
@@ -545,6 +540,11 @@ int main(int argc, char *argv[])
 		}
 
 		fclose(fp_cset);
+	}
+	else
+	{
+		strcpy(lsf_out.ci_cset, charsets[chr]);
+		printf("Intrnal charset %d\n", chr);
 	}
 
 	/* write data in struct */
