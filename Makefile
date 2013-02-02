@@ -3,8 +3,12 @@ CCOPTS = -O2
 CCFLAGS = -Wall -g
 #LDOPTS = -s
 LDFLAGS = -lssl
-viper:
-	$(CC) $(CCOPTS) $(CCFLAGS) -c viper_mod.c
-	$(CC) $(LDFLAGS) viper_mod.o -o viper
+SRCS = viper_mod.c
+OBJS = $(SRCS:%.c=%.o)
+EXE = viper
+all:EXE
+EXE:
+	$(CC) $(CCOPTS) $(CCFLAGS) -c $(SRCS)
+	$(CC) $(LDFLAGS) $(OBJS) -o $(EXE)
 clean:
-	rm -f *.o viper
+	rm -f $(OBJS) $(EXE)

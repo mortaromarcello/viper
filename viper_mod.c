@@ -11,13 +11,21 @@
 #define DEFAULTPWLENGTH		8
 #define MAXPASSWDLENGTH 	16
 #define MAXENCPWDLENGTH 	13
-#define CHARSET_FILE 		"charset.ini"
+//#define CHARSET_FILE 		"charset.ini"
 #define TIMECHECK			1000000
 #define FIN_IDENT			"--viper_final--"
 #define SCREENWIDTH			80
 #define SCREENHEIGTH		24
 #define MAXSTR				255
 #define NCHRUSER			80
+
+char *charsets[] = {
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}\\|;\':\",./<>?`",
+		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
+		"abcdefghijklmnopqrstuvwxyz1234567890",
+		"abcdefghijklmnopqrstuvwxyz" ,
+		"1234567890"
+};
 
 struct crack_input
 {
@@ -343,7 +351,7 @@ int main(int argc, char *argv[])
 	int  i     = 0;							// loop variable
 	FILE *fp_lsf;							// loadsourcefile
 	FILE *fp_file;							// passwordfile
-	FILE *fp_cset;							// character set file
+//	FILE *fp_cset;							// character set file
 	char *line = malloc(255);				// tmp buffer
 	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
@@ -502,7 +510,10 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
+	strcpy(lsf_out.ci_cset, charsets[chr]);
+	printf("Charset %d %s\n", chr, lsf_out.ci_cset);
 
+/*
 	if ( (fp_cset = fopen(CHARSET_FILE, "r")) == NULL )
 	{
 		printf("Error: Can't open %s!\n", CHARSET_FILE);
@@ -527,6 +538,7 @@ int main(int argc, char *argv[])
 	}
 
 	fclose(fp_cset);
+*/
 
 	/* write data in struct */
 	lsf_out.ci_rf = rf;
@@ -539,6 +551,15 @@ int main(int argc, char *argv[])
 	lsf_out.ci_vo = vo;
 	printf("...command line parameters loaded.\n");
 	crack(&lsf_out);
+
+	free(pass);
+	free(line);
+	free(vp_stat);
+	free(lsf_out.ci_cset);
+	free(lsf_out.ci_pass);
+	free(lsf_out.ci_user);
+	free(lsf_out.ci_dnum);
+	free(lsf_out.ci_pf);
 	return 0;
 }
 
