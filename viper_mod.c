@@ -357,9 +357,7 @@ int main(int argc, char *argv[])
 	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
 
-	printf("\nViper modified version by pippo60gd - original version is located in:");
-	printf("\nViper v1.5 (Hale 05/12/2000) - C version by Frank4DD (05/22/00)\n");
-	printf("Wiltered Fire - www.wilter.com/wf\n\n");
+	printf("\nViper modified version by pippo60gd of the original C version by Frank4DD.\nOriginal version is located in:\nhttp://www.frank4dd.com/sw/viper/\n\n");
 
 	/* need help? */
 
@@ -544,7 +542,7 @@ int main(int argc, char *argv[])
 	else
 	{
 		strcpy(lsf_out.ci_cset, charsets[chr]);
-		printf("Intrnal charset %d\n", chr);
+		printf("Internal charset %d\n", chr);
 	}
 
 	/* write data in struct */
