@@ -11,7 +11,6 @@
 #define DEFAULTPWLENGTH		8
 #define MAXPASSWDLENGTH 	16
 #define MAXENCPWDLENGTH 	13
-//#define CHARSET_FILE 		"charset.ini"
 #define TIMECHECK			1000000
 #define FIN_IDENT			"--viper_final--"
 #define SCREENWIDTH			80
