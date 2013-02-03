@@ -40,18 +40,9 @@ struct crack_input
 	int  ci_vo;							// verbose output
 };
 
-// struct    crack_input lsf_out;
-struct	tm start_time, last_time;		// time structs
-char	checkpass[17];					// cleartext passphrase
-char	message[7][81];				// result message
-char	time_done[17];					// passed time
-char	time_togo[17];					// calculated time to run
-time_t	read_time;						// actual time
-FILE *	fp_pf;							// progressfile
-
 /*                                                                    */
 
-void the_res(struct crack_input *, char *, struct tm);
+void the_res(struct crack_input *, char *, struct tm, char *);
 void help (void);
 void convert(double, char *);
 void crack(struct crack_input *);
@@ -111,7 +102,14 @@ void crack(struct crack_input *lsf_out_ptr)
 	double tot_num			= 0;
 	int time_loop			= 0;
 	int lines_loop			= 0;
-	char * pass;
+	char checkpass[17];						// cleartext passphrase
+	struct tm start_time, last_time;		// time structs
+	char time_togo[17];						// calculated time to run
+	time_t read_time;						// actual time
+	FILE * fp_pf;							// progressfile
+	char time_done[17];						// passed time
+	double duration;
+	static struct tm act_time;
 
 	/* debug only */
 #ifdef DEBUG
@@ -134,6 +132,7 @@ void crack(struct crack_input *lsf_out_ptr)
 	/* go on with the show */
 	if (strlen(lsf_out.ci_dnum))
 	{
+		char * pass;
 		passprg[0]=atoi(strtok(lsf_out.ci_dnum, ",")); i=1;
 		printf("Saved progress is: %d (%c)", passprg[0], lsf_out.ci_cset[passprg[0]]);
 		while ( (pass = strtok(NULL, ",")) )
@@ -204,7 +203,10 @@ void crack(struct crack_input *lsf_out_ptr)
 #ifdef DEBUG
 				printf("We got it!!!! ----> %s\n", checkpass);
 #endif
-				the_res(lsf_out_ptr, checkpass, start_time);
+				act_time=*localtime(&read_time);
+				duration = (double) difftime(mktime(&act_time), mktime(&start_time));
+				convert(duration, time_done);
+				the_res(lsf_out_ptr, checkpass, start_time, time_done);
 			}
 
 			/* debug only */
@@ -215,11 +217,8 @@ void crack(struct crack_input *lsf_out_ptr)
 			/* Time check */
 			if (count == TIMECHECK)
 			{
-				static struct tm act_time;
 				double time_dif;
-
 				time_loop++;
-
 				time(&read_time);
 				act_time=*localtime(&read_time);
 				time_dif = difftime(mktime(&act_time), mktime(&last_time));
@@ -234,8 +233,6 @@ void crack(struct crack_input *lsf_out_ptr)
 				/* update interval check - calculate duration and cps */
 				if (time_dif >= ui)
 				{
-					double duration;
-
 					duration = (double) difftime(mktime(&act_time), mktime(&start_time));
 					last_time = act_time;
 					cps = uicount / time_dif;
@@ -331,7 +328,7 @@ void crack(struct crack_input *lsf_out_ptr)
 	}
 	/* if we reach this point, no password matched. Try another charset or length! */
 	checkpass[0] = '\0';
-	the_res(lsf_out_ptr, checkpass, start_time);
+	the_res(lsf_out_ptr, checkpass, start_time, time_done);
 }
 
 int main(int argc, char *argv[])
@@ -593,7 +590,7 @@ void help ()
 
 /* ## begin results sub ## */
 
-void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start)
+void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start, char *time_done)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
@@ -601,6 +598,9 @@ void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start)
 	double end_time;
 	int r;
 	char time_total[17];
+	char	message[7][81];				// result message
+	time_t read_time;						// actual time
+	FILE * fp_pf;							// progressfile
 
 	time(&read_time);
 	act_time=*localtime(&read_time);
