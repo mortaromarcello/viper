@@ -394,19 +394,19 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 void help ()
 {
 	int i;
-	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
-	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
-	printf("\t-lsf <file>  Load saved file from previous session\n");
-	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)\n");
-	print("\t-ldf <file>   Load dictionary for use dictionary mode\n");
-	printf("\t-pf <file>   Save progress to file at update interval\n");
-	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
-	printf("\t-c #         Character set from internal character set to use (default 1)\n");
-	printf("\t-pws #       Minimum password length (starting value, default 1)\n");
-	printf("\t-pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
-	printf("\t-ui #        Console update interval (in minutes - default 10)\n");
-	printf("\t-v           Verbose output\n");
-	printf("\t-m #         Crack method: 0 (default) brute-force mode, 1 dictionary mode\n");
+	printf("  -f <file>    File to load password from (required unless using lsf)\n");
+	printf("  -u <user>    Username to load from file (required unless using lsf)\n");
+	printf("  -lsf <file>  Load saved file from previous session\n");
+	printf("  -lcf <file>  Load character set file (format line: <number> <characters>)\n");
+	printf("  -ldf <file>   Load dictionary for use dictionary mode. (default is '/usr/share/dict/words'\n");
+	printf("  -pf <file>   Save progress to file at update interval\n");
+	printf("  -rf #        Amount of time in hours to run for (default infinite)\n");
+	printf("  -c #         Character set from internal character set to use (default 1)\n");
+	printf("  -pws #       Minimum password length (starting value, default 1)\n");
+	printf("  -pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
+	printf("  -ui #        Console update interval (in minutes - default 10)\n");
+	printf("  -v           Verbose output\n");
+	printf("  -m #         Crack method: 0 (default) brute-force mode, 1 dictionary mode\n\n");
 	printf("Internal character sets:\n");
 	for (i=0;i<5;i++)
 		printf("set %d: %s (%d characters)\n", i, charsets[i], (int)strlen(charsets[i]));
