@@ -98,6 +98,7 @@ int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 	char *hashguess = 0;
 	FILE *words;
 	struct crack_input lsf_out;
+	
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
 	if (dict == 0)
 	{
@@ -126,15 +127,13 @@ int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 			return 0;
 		}
 		if(strcmp(word,"nothing") == 0 || i%100 == 0)
-			printf("[ Word: %-20s |   hashguess: %-20s ]\n",
-				word, hashguess);
+			printf("[ Word: %-20s |   hashguess: %-20s ]\n", word, hashguess);
 		i++;
-  }
-  printf("The password is not in the spelling dictionary.\n");
-  fclose(words);
-  return 1;
+	}
+	printf("The password is not in the spelling dictionary.\n");
+	fclose(words);
+	return 1;
 }
-
 
 void crack_bruteforce(struct crack_input *lsf_out_ptr)
 {
@@ -198,7 +197,7 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 		}
 		printf("\n");
 		startpws = i;
-		for ( j=i; j<((int) lsf_out.ci_pwl); j++ ) { passprg[j] = 0;}
+		for ( j=i; j < lsf_out.ci_pwl; j++ ) { passprg[j] = 0;}
 		on = 1;
 	}
 
@@ -210,12 +209,12 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 #endif
 
 	/* make new password */
-	for ( i = startpws; i <= ((int) lsf_out.ci_pwl); i++ )
+	for ( i = startpws; i <= lsf_out.ci_pwl; i++ )
 	{
 		if (on) { on = 0; }
 		else
 		{
-			for ( j=0; j<((int) lsf_out.ci_pwl); j++ ) { passprg[j] = 0;}
+			for ( j=0; j < lsf_out.ci_pwl; j++ ) { passprg[j] = 0;}
 		}
 		tot_num = varlen;
 		printf("Cracking for pass length %d", i);
@@ -360,10 +359,11 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 					/* ## check for -rf expiration ## */
     				if(lsf_out.ci_rf)
 					{
-						if( (lsf_out.ci_rf*3600) >= ((int) duration) )
+						if( (lsf_out.ci_rf*3600) <= ((int) duration) )
 						{
 							printf("\n [ RunFor duration of %d hours expired ]\n",
 									lsf_out.ci_rf);
+							return;
 						}
 					}
 
@@ -398,7 +398,7 @@ void help ()
 	printf("  -u <user>    Username to load from file (required unless using lsf)\n");
 	printf("  -lsf <file>  Load saved file from previous session\n");
 	printf("  -lcf <file>  Load character set file (format line: <number> <characters>)\n");
-	printf("  -ldf <file>   Load dictionary for use dictionary mode. (default is '/usr/share/dict/words')\n");
+	printf("  -ldf <file>  Load dictionary for use dictionary mode. (default is '/usr/share/dict/words')\n");
 	printf("  -pf <file>   Save progress to file at update interval\n");
 	printf("  -rf #        Amount of time in hours to run for (default infinite)\n");
 	printf("  -c #         Character set from internal character set to use (default 1)\n");
@@ -649,7 +649,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
-	if (lcf && (!ldf && m > 0))
+	if (lcf && (!ldf && !m ))
 	{
 		if((fp_cset = fopen(lcf, "r")) == NULL )
 		{
@@ -675,7 +675,7 @@ int main(int argc, char *argv[])
 		}
 		fclose(fp_cset);
 	}
-	else if (!ldf && m > 0)
+	else if (!ldf && !m )
 	{
 		strcpy(lsf_out.ci_cset, charsets[chr]);
 		printf("Internal charset %d\n", chr);
