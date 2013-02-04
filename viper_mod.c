@@ -398,7 +398,7 @@ void help ()
 	printf("  -u <user>    Username to load from file (required unless using lsf)\n");
 	printf("  -lsf <file>  Load saved file from previous session\n");
 	printf("  -lcf <file>  Load character set file (format line: <number> <characters>)\n");
-	printf("  -ldf <file>   Load dictionary for use dictionary mode. (default is '/usr/share/dict/words'\n");
+	printf("  -ldf <file>   Load dictionary for use dictionary mode. (default is '/usr/share/dict/words')\n");
 	printf("  -pf <file>   Save progress to file at update interval\n");
 	printf("  -rf #        Amount of time in hours to run for (default infinite)\n");
 	printf("  -c #         Character set from internal character set to use (default 1)\n");
