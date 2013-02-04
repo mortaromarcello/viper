@@ -18,7 +18,7 @@
 #define MAXSTR				255
 #define NCHRUSER			80
 
-char *charsets[] = {
+const char *charsets[] = {
 		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*()_+-=[]{}\\|;\':\",./<>?`",
 		"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890",
 		"abcdefghijklmnopqrstuvwxyz1234567890",
@@ -28,24 +28,25 @@ char *charsets[] = {
 
 struct crack_input
 {
-	char *ci_user;						// username
-	char *ci_pass;						// encrypted password
-	char *ci_cset;						// characterset to use
-	char ci_rf;							// runtime limit
-	int  ci_pwl;						// password max length
-	int  ci_pws;						// password min length
-	int  ci_ui;							// console update interval
-	char *ci_dnum;						// status for each digit
-	char *ci_pf;						// progressfile name
-	int  ci_vo;							// verbose output
+	char *ci_user;		// username
+	char *ci_pass;		// encrypted password
+	char *ci_cset;		// characterset to use
+	char ci_rf;			// runtime limit
+	int  ci_pwl;		// password max length
+	int  ci_pws;		// password min length
+	int  ci_ui;			// console update interval
+	char *ci_dnum;		// status for each digit
+	char *ci_pf;		// progressfile name
+	int  ci_vo;			// verbose output
 };
 
 /*                                                                    */
 
-void the_res(struct crack_input *, char *, struct tm, char *);
-void help (void);
 void convert(double, char *);
 void crack(struct crack_input *);
+void help (void);
+void the_res(struct crack_input *, char *, struct tm, char *);
+
 /*                                                                    */
 
 void convert(double sec_dur, char * strf_duration)
@@ -109,7 +110,7 @@ void crack(struct crack_input *lsf_out_ptr)
 	FILE * fp_pf;							// progressfile
 	char time_done[17];						// passed time
 	double duration;
-	static struct tm act_time;
+	struct tm act_time;
 
 	/* debug only */
 #ifdef DEBUG
@@ -119,7 +120,6 @@ void crack(struct crack_input *lsf_out_ptr)
 	lsf_out.ci_pwl, lsf_out.ci_pws, ui,
 	lsf_out.ci_dnum, lsf_out.ci_pf);
 #endif
-	/* fine debug */
 
 	printf("Character set is %d chars long.\nCharacters used:%s\n", varlen, lsf_out.ci_cset);
 
@@ -200,13 +200,14 @@ void crack(struct crack_input *lsf_out_ptr)
 			if (! strcmp(testpass, lsf_out.ci_pass))
 			{
 				/* debug only */
-#ifdef DEBUG
+//#ifdef DEBUG
 				printf("We got it!!!! ----> %s\n", checkpass);
-#endif
+//#endif
 				act_time=*localtime(&read_time);
 				duration = (double) difftime(mktime(&act_time), mktime(&start_time));
 				convert(duration, time_done);
 				the_res(lsf_out_ptr, checkpass, start_time, time_done);
+				return;
 			}
 
 			/* debug only */
@@ -226,7 +227,7 @@ void crack(struct crack_input *lsf_out_ptr)
 
 				/* debug only */
 #ifdef DEBUG
-				printf("[ act: %s | last: %s | diff: %d | uicount: %d ]\n",
+				printf("[ act: %s | last: %s | diff: %lf | uicount: %d ]\n",
 							asctime(&act_time), asctime(&last_time), time_dif, uicount);
 #endif
 
@@ -327,9 +328,83 @@ void crack(struct crack_input *lsf_out_ptr)
 		}
 	}
 	/* if we reach this point, no password matched. Try another charset or length! */
+	printf("No password matched. Try another charset or length!\n");
 	checkpass[0] = '\0';
 	the_res(lsf_out_ptr, checkpass, start_time, time_done);
 }
+
+/* ## begin help sub ## */
+
+void help ()
+{
+	int i;
+	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
+	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
+	printf("\t-lsf <file>  Load saved file from previous session\n");
+	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)\n");
+	printf("\t-pf <file>   Save progress to file at update interval\n");
+	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
+	printf("\t-c #         Character set from internal character set to use (default 1)\n");
+	printf("\t-pws #       Minimum password length (starting value, default 1)\n");
+	printf("\t-pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
+	printf("\t-ui #        Console update interval (in minutes - default 10)\n");
+	printf("\t-v           Verbose output\n");
+	printf("Internal character sets:\n");
+	for (i=0;i<5;i++)
+		printf("set %d: %s (%d characters)\n", i, charsets[i], (int)strlen(charsets[i]));
+}
+
+/* ## begin results sub ## */
+
+void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start, char *time_done)
+{
+	struct crack_input lsf_out;
+	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
+	struct tm act_time;
+	int r;
+	char message[8][81];		// result message
+	time_t read_time;			// actual time
+	FILE * fp_pf;				// progressfile
+
+	time(&read_time);
+	act_time=*localtime(&read_time);
+
+	
+	sprintf(message[0], "%s\n", FIN_IDENT);
+	sprintf(message[1], "\n");
+
+	if (endpass[0] != '\0')
+	{
+		sprintf(message[2], " The password has been located.\n");
+		sprintf(message[3], " Username : %s\n", lsf_out.ci_user);
+		sprintf(message[4], " Password : %s\n", endpass);
+	}
+	else
+	{
+		sprintf(message[2], " The password could not be located.\n");
+		sprintf(message[3], " Username : %s\n", lsf_out.ci_user);
+		sprintf(message[4], " Password : %s\n", "** unknown **");
+	}
+
+	sprintf(message[5], " Started  : %s", asctime(&start));
+	sprintf(message[6], " Finished : %s", asctime(&act_time));
+	sprintf(message[7], " Duration : %s\n", time_done);
+
+	for (r = 1; r <= 7; r++)
+	{
+		printf("%s", message[r]);
+	}
+
+	if(strlen(lsf_out.ci_pf))
+	{	if ( (fp_pf = fopen(lsf_out.ci_pf, "w")) == NULL )
+		{	printf("Error: Can't open %s!\n", lsf_out.ci_pf);
+			exit(-1); }
+
+		for (r = 0; r <=7; r++) { fprintf(fp_pf, message[r]); }
+		fclose(fp_pf);
+	}
+}
+
 
 int main(int argc, char *argv[])
 {
@@ -507,23 +582,22 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
-	if ( lcf )
+	if (lcf)
 	{
-
-		if ( (fp_cset = fopen(lcf, "r")) == NULL )
+		if((fp_cset = fopen(lcf, "r")) == NULL )
 		{
-			printf("Error: Can't open %s!\n", lcf);
+			printf ("Error: Can't open %s!\n", lcf);
 			exit(-1);
 		}
-
-		while ( (fscanf (fp_cset, "%s", line) != EOF) )
+		
+		while((fscanf (fp_cset, "%s", line) != EOF))
 		{
-			if ( chr == (atoi(line)) )
+			if(chr == (atoi(line)))
 			{
 				fscanf (fp_cset, "%s", lsf_out.ci_cset); break;
 			}
 		}
-
+		
 		if ( !lsf_out.ci_cset || (strlen(lsf_out.ci_cset)) < 2 )
 		{
 			printf("Error: Bad charset %d in %s!\n", chr, lcf); exit(-1);
@@ -532,7 +606,6 @@ int main(int argc, char *argv[])
 		{
 			printf("Found: Charset %d in %s\n", chr, lcf);
 		}
-
 		fclose(fp_cset);
 	}
 	else
@@ -561,87 +634,7 @@ int main(int argc, char *argv[])
 	free(lsf_out.ci_user);
 	free(lsf_out.ci_dnum);
 	free(lsf_out.ci_pf);
-	return 0;
-}
-
-/* ######## start subs ############### */
-
-/* ## begin help sub ## */
-
-void help ()
-{
-	int i;
-	printf("\t-f <file>    File to load password from (required unless using lsf)\n");
-	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
-	printf("\t-lsf <file>  Load saved file from previous session\n");
-	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)\n");
-	printf("\t-pf <file>   Save progress to file at update interval\n");
-	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
-	printf("\t-c #         Character set from internal character set to use (default 1)\n");
-	printf("\t-pws #       Minimum password length (starting value, default 1)\n");
-	printf("\t-pwl #       Maximum password length (default %d - maximum %d)\n",
-			  DEFAULTPWLENGTH, MAXPASSWDLENGTH);
-	printf("\t-ui #        Console update interval (in minutes - default 10)\n");
-	printf("\t-v           Verbose output\n");
-	printf("Internal character sets:\n");
-	for (i=0;i<5;i++)
-		printf("set %d: %s (%d characters)\n", i, charsets[i], (int)strlen(charsets[i]));
-}
-
-/* ## begin results sub ## */
-
-void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start, char *time_done)
-{
-	struct crack_input lsf_out;
-	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
-	static struct tm act_time;
-	double end_time;
-	int r;
-	char time_total[17];
-	char	message[7][81];				// result message
-	time_t read_time;						// actual time
-	FILE * fp_pf;							// progressfile
-
-	time(&read_time);
-	act_time=*localtime(&read_time);
-	end_time = difftime(mktime(&act_time), mktime(&start));
-	convert(end_time, time_total);
-
-	sprintf(message[0], "%s\n", FIN_IDENT);
-	sprintf(message[1], "\n");
-
-	if (endpass[0] != '\0')
-	{
-		sprintf(message[2], " The password has been located.\n");
-		sprintf(message[3], " Username : %s\n", lsf_out.ci_user);
-		sprintf(message[4], " Password : %s\n", endpass);
-	}
-	else
-	{
-		sprintf(message[2], " The password could not be located.\n");
-		sprintf(message[3], " Username : %s\n", lsf_out.ci_user);
-		sprintf(message[4], " Password : %s\n", "** unknown **");
-	}
-
-	sprintf(message[5], " Started  : %s", asctime(&start));
-	sprintf(message[6], " Finished : %s", asctime(&act_time));
-	sprintf(message[7], " Duration : %s\n", time_done);
-
-	for (r = 1; r <= 7; r++)
-	{
-		printf("%s", message[r]);
-	}
-
-	if(strlen(lsf_out.ci_pf))
-	{	if ( (fp_pf = fopen(lsf_out.ci_pf, "w")) == NULL )
-		{	printf("Error: Can't open %s!\n", lsf_out.ci_pf);
-			exit(-1); }
-
-		for (r = 0; r <=7; r++) { fprintf(fp_pf, message[r]); }
-		fclose(fp_pf);
-	}
-
 	printf("\nViper exiting...\n");
-	exit(0);
+	return 0;
 }
 
