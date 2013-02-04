@@ -9,8 +9,8 @@
 
 //#define DEBUG				0
 #define DEFAULTPWLENGTH		8
-#define MAXPASSWDLENGTH 	16
-#define MAXENCPWDLENGTH 	13
+#define MAXPASSWDLENGTH		16
+#define MAXENCPWDLENGTH		254
 #define TIMECHECK			1000000
 #define FIN_IDENT			"--viper_final--"
 #define SCREENWIDTH			80
@@ -43,7 +43,9 @@ struct crack_input
 /*                                                                    */
 
 void convert(double, char *);
-void crack(struct crack_input *);
+void chop(char *);
+int crack_dict(struct crack_input *, char *);
+void crack_bruteforce(struct crack_input *);
 void help (void);
 void the_res(struct crack_input *, char *, struct tm, char *);
 
@@ -80,7 +82,61 @@ void convert(double sec_dur, char * strf_duration)
 	{ sprintf(strf_duration, "%3.3dd:%2.2dh:%2.2dm:%2.2ds", day, hour, min, sec); }
 }
 
-void crack(struct crack_input *lsf_out_ptr)
+void chop(char *word)
+{
+  int lenword;
+  lenword=strlen(word);
+  if( word[lenword-1] == '\n') 
+    word[lenword-1] = '\0';
+} 
+
+int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
+{
+	int i=0;
+	char word[17] = "";
+	char salt[2]  = "";
+	char *hashguess = 0;
+	FILE *words;
+	struct crack_input lsf_out;
+	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
+	if (dict == 0)
+	{
+		if ((words = fopen("/usr/share/dict/words","r")) == NULL) /* open spelling dictionary */
+		{
+			printf("Error: Can't open /usr/share/dict/words!\n");
+			exit (1);
+		}
+	}
+	else
+	{
+		if ((words=fopen(dict, "r")) == NULL)
+		{
+			printf("Error: Can't open %s!\n", dict);
+			exit (1);
+		}
+	}
+	strncat(salt, lsf_out.ci_pass, 2);
+	while( (fgets(word, 17, words)) != NULL)
+	{
+		chop(word);
+		if(strcmp((hashguess = DES_crypt(word,salt)), lsf_out.ci_pass) == 0)
+		{ /* guessed the password ? */
+			printf("the password is: %s\n",word);
+			fclose(words);
+			return 0;
+		}
+		if(strcmp(word,"nothing") == 0 || i%100 == 0)
+			printf("[ Word: %-20s |   hashguess: %-20s ]\n",
+				word, hashguess);
+		i++;
+  }
+  printf("The password is not in the spelling dictionary.\n");
+  fclose(words);
+  return 1;
+}
+
+
+void crack_bruteforce(struct crack_input *lsf_out_ptr)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
@@ -342,6 +398,7 @@ void help ()
 	printf("\t-u <user>    Username to load from file (required unless using lsf)\n");
 	printf("\t-lsf <file>  Load saved file from previous session\n");
 	printf("\t-lcf <file>  Load character set file (format line: <number> <characters>)\n");
+	print("\t-ldf <file>   Load dictionary for use dictionary mode\n");
 	printf("\t-pf <file>   Save progress to file at update interval\n");
 	printf("\t-rf #        Amount of time in hours to run for (default infinite)\n");
 	printf("\t-c #         Character set from internal character set to use (default 1)\n");
@@ -349,6 +406,7 @@ void help ()
 	printf("\t-pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
 	printf("\t-ui #        Console update interval (in minutes - default 10)\n");
 	printf("\t-v           Verbose output\n");
+	printf("\t-m #         Crack method: 0 (default) brute-force mode, 1 dictionary mode\n");
 	printf("Internal character sets:\n");
 	for (i=0;i<5;i++)
 		printf("set %d: %s (%d characters)\n", i, charsets[i], (int)strlen(charsets[i]));
@@ -413,6 +471,7 @@ int main(int argc, char *argv[])
 	char *user = 0;							// username in passwordfile
 	char *lsf  = 0;							// filename loadsourcefile
 	char *lcf  = 0;							// filename loadcharacterset
+	char *ldf  = 0;							// filename loaddictionary
 	char *pf   = 0;							// filename progressfile
 	int  rf    = 0;							// runtime limit
 	int  chr   = 1;							// characterset
@@ -420,6 +479,7 @@ int main(int argc, char *argv[])
 	int  pwl   = DEFAULTPWLENGTH;			// max passwordlength
 	int  ui    = 10;						// console update interval
 	int  vo    = 0;							// verbose output
+	int  m     = 0;							// method used
 	int  i     = 0;							// loop variable
 	FILE *fp_lsf;							// loadsourcefile
 	FILE *fp_file;							// passwordfile
@@ -451,7 +511,8 @@ int main(int argc, char *argv[])
 	{
 		if ( (argc != 2) && (argc != 4) && (argc != 6) &&
 			(argc != 8) && (argc != 10) && (argc != 12)
-			&& (argc != 14) && (argc != 16) && (argc != 18) )
+			&& (argc != 14) && (argc != 16) && (argc != 18)
+			&& (argc != 20) && (argc != 22) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -461,7 +522,8 @@ int main(int argc, char *argv[])
 	{
 		if ( (argc != 1) && (argc != 3) && (argc != 5) &&
 			(argc != 7) && (argc != 9) && (argc != 11)
-			&& (argc != 13) && (argc != 15) && (argc != 17) )
+			&& (argc != 13) && (argc != 15) && (argc != 17)
+			&& (argc != 19) && (argc != 21) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -491,9 +553,11 @@ int main(int argc, char *argv[])
 		else if (! (strcmp (argv[i], "-ui" ))) { ui   = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-pws"))) { pws  = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-lsf"))) { lsf  =      argv[i+1] ; i++;}
+		else if (! (strcmp (argv[i], "-ldf"))) { ldf  =      argv[i+1] ; i++;}
 		else if (! (strcmp (argv[i], "-lcf"))) { lcf  =      argv[i+1] ; i++;}
 		else if (! (strcmp (argv[i], "-pf" ))) { pf   =      argv[i+1] ; i++;}
 		else if (! (strcmp (argv[i], "-rf" ))) { rf   = atoi(argv[i+1]); i++;}
+		else if (! (strcmp (argv[i], "-m"  ))) { m    = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-v"  ))) { continue; }
 		else { printf("Unknown argument \"%s\": try viper -h\n", argv[i]); exit(-1); }
 	}
@@ -533,7 +597,10 @@ int main(int argc, char *argv[])
 		lsf_out.ci_rf = 0;
 		lsf_out.ci_vo = vo;
 		printf("...loaded parameters from file %s.\n", lsf);
-		crack(&lsf_out);
+		if ( m == 0 )
+			crack_bruteforce(&lsf_out);
+		else
+			crack_dict(&lsf_out, ldf);
 	}
 
 	/* check for required arguments */
@@ -582,7 +649,7 @@ int main(int argc, char *argv[])
 	}
 
 	/* load character set */
-	if (lcf)
+	if (lcf && (!ldf && m > 0))
 	{
 		if((fp_cset = fopen(lcf, "r")) == NULL )
 		{
@@ -608,7 +675,7 @@ int main(int argc, char *argv[])
 		}
 		fclose(fp_cset);
 	}
-	else
+	else if (!ldf && m > 0)
 	{
 		strcpy(lsf_out.ci_cset, charsets[chr]);
 		printf("Internal charset %d\n", chr);
@@ -624,7 +691,10 @@ int main(int argc, char *argv[])
 	lsf_out.ci_ui = ui;
 	lsf_out.ci_vo = vo;
 	printf("...command line parameters loaded.\n");
-	crack(&lsf_out);
+	if (!m)
+		crack_bruteforce(&lsf_out);
+	else
+		crack_dict(&lsf_out, ldf);
 
 	free(pass);
 	free(line);
