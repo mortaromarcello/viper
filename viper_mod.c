@@ -40,7 +40,6 @@ struct crack_input
 	char *ci_dnum;		// status for each digit
 	char *ci_pf;		// progressfile name
 	int  ci_vo;			// verbose output
-	int  ci_ht;			// halt option
 };
 
 /*                                                                    */
@@ -531,7 +530,7 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 	
-	for (i = 1; i < argc; i++)
+/*	for (i = 1; i < argc; i++)
 	{
 		if (! (strcmp (argv[i], "-v")))
 			vo = 1;
@@ -540,7 +539,7 @@ int main(int argc, char *argv[])
 		else if (! (strcmp (argv[i], "-md")))
 			md = 1;
 	}
-	
+*/	
 	lsf_out.ci_cset	= malloc(MAXSTR);
 	lsf_out.ci_pass	= malloc(MAXENCPWDLENGTH+1);
 	lsf_out.ci_dpas = malloc(MAXPASSWDLENGTH+1);
@@ -552,7 +551,6 @@ int main(int argc, char *argv[])
 	lsf_out.ci_pws	= 0;
 	lsf_out.ci_ui	= 0;
 	lsf_out.ci_vo	= 0;
-	lsf_out.ci_ht	= 0;
 	
 	/* process command line arguments */
 	for (i = 1; i < argc; i++)
@@ -568,9 +566,9 @@ int main(int argc, char *argv[])
 		else if (! (strcmp (argv[i], "-lcf"))) { lcf  = (argv[i+1][0] != '-') ? argv[i+1] : 0; i++;}
 		else if (! (strcmp (argv[i], "-pf" ))) { pf   = (argv[i+1][0] != '-') ? argv[i+1] : 0; i++;}
 		else if (! (strcmp (argv[i], "-rf" ))) { rf   = (argv[i+1][0] != '-') ? atoi(argv[i+1]) : 0; i++;}
-		else if (! (strcmp (argv[i], "-v"  ))) { continue; }
-		else if (! (strcmp (argv[i], "-ht" ))) { continue; }
-		else if (! (strcmp (argv[i], "-md" ))) { continue; }
+		else if (! (strcmp (argv[i], "-v"  ))) { vo   = 1;}
+		else if (! (strcmp (argv[i], "-ht" ))) { ht   = 1;}
+		else if (! (strcmp (argv[i], "-md" ))) { md   = 1;}
 		else { printf("Unknown argument \"%s\": try viper -h\n", argv[i]); exit(-1); }
 	}
 	
@@ -616,7 +614,6 @@ int main(int argc, char *argv[])
 		fclose(fp_lsf);
 		lsf_out.ci_rf = rf;
 		lsf_out.ci_vo = vo;
-		lsf_out.ci_ht = ht;
 		printf("...loaded parameters from file %s.\n", lsf);
 		if (!md)
 			ret_value = crack_bruteforce(&lsf_out);
@@ -707,7 +704,6 @@ int main(int argc, char *argv[])
 		strcpy (lsf_out.ci_user, user);
 		lsf_out.ci_ui = ui;
 		lsf_out.ci_vo = vo;
-		lsf_out.ci_ht = ht;
 		printf("...command line parameters loaded.\n");
 		if (!md)
 			ret_value = crack_bruteforce(&lsf_out);
@@ -725,6 +721,11 @@ int main(int argc, char *argv[])
 	free(lsf_out.ci_dnum);
 	free(lsf_out.ci_pf);
 	printf("\nViper exiting...\n");
+	if (ht)
+	{
+		printf("The system will be stopped!");
+		system("/usr/bin/env halt");
+	}
 	return 0;
 }
 
