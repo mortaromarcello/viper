@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <time.h>
 #include <openssl/des.h>
+#include <unistd.h>
 
 /*                                                                    */
 
@@ -30,6 +31,7 @@ struct crack_input
 {
 	char *ci_user;		// username
 	char *ci_pass;		// encrypted password
+	char *ci_dpas;		// decrypted password
 	char *ci_cset;		// characterset to use
 	char ci_rf;			// runtime limit
 	int  ci_pwl;		// password max length
@@ -38,6 +40,7 @@ struct crack_input
 	char *ci_dnum;		// status for each digit
 	char *ci_pf;		// progressfile name
 	int  ci_vo;			// verbose output
+	int  ci_ht;			// halt option
 };
 
 /*                                                                    */
@@ -45,9 +48,10 @@ struct crack_input
 void convert(double, char *);
 void chop(char *);
 int crack_dict(struct crack_input *, char *);
-void crack_bruteforce(struct crack_input *);
+int crack_bruteforce(struct crack_input *);
 void help (void);
-void the_res(struct crack_input *, char *, struct tm, char *);
+void the_res(struct crack_input *, struct tm);
+double get_duration(time_t);
 
 /*                                                                    */
 
@@ -90,14 +94,27 @@ void chop(char *word)
     word[lenword-1] = '\0';
 } 
 
+double get_duration(time_t start_time)
+{
+	double val;
+	time_t read_time;
+	time(&read_time);
+	val = difftime(read_time, start_time);
+	return val;
+}
+
 int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 {
 	int i=0;
 	char word[17] = "";
 	char salt[2]  = "";
 	char *hashguess = 0;
+	char time_done[17];
 	FILE *words;
 	struct crack_input lsf_out;
+	time_t start_time;
+
+	time(&start_time);
 	
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
 	if (dict == 0)
@@ -124,10 +141,23 @@ int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 		{ /* guessed the password ? */
 			printf("the password is: %s\n",word);
 			fclose(words);
+			strcpy(lsf_out.ci_dpas, word);
 			return 0;
 		}
-		if(strcmp(word,"nothing") == 0 || i%100 == 0)
-			printf("[ Word: %-20s |   hashguess: %-20s ]\n", word, hashguess);
+		if(i%100 == 0)
+		{
+			convert(get_duration(start_time), time_done);
+			printf("[ Word: %-15s | Hashguess: %-15s | Time: %-15s ]\n", word, hashguess, time_done);
+			if(lsf_out.ci_rf)
+			{
+				if( (lsf_out.ci_rf*3600) <= (int) get_duration(start_time) )
+				{
+					printf("\n [ RunFor duration of %d hours expired ]\n",
+							lsf_out.ci_rf);
+					return 1;
+				}
+			}
+		}
 		i++;
 	}
 	printf("The password is not in the spelling dictionary.\n");
@@ -135,7 +165,7 @@ int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 	return 1;
 }
 
-void crack_bruteforce(struct crack_input *lsf_out_ptr)
+int crack_bruteforce(struct crack_input *lsf_out_ptr)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
@@ -258,11 +288,12 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 //#ifdef DEBUG
 				printf("We got it!!!! ----> %s\n", checkpass);
 //#endif
+				strcpy(lsf_out.ci_dpas, checkpass);
 				act_time=*localtime(&read_time);
 				duration = (double) difftime(mktime(&act_time), mktime(&start_time));
 				convert(duration, time_done);
-				the_res(lsf_out_ptr, checkpass, start_time, time_done);
-				return;
+				the_res(lsf_out_ptr, start_time);
+				return 0;
 			}
 
 			/* debug only */
@@ -363,7 +394,7 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 						{
 							printf("\n [ RunFor duration of %d hours expired ]\n",
 									lsf_out.ci_rf);
-							return;
+							return 1;
 						}
 					}
 
@@ -386,7 +417,8 @@ void crack_bruteforce(struct crack_input *lsf_out_ptr)
 	/* if we reach this point, no password matched. Try another charset or length! */
 	printf("No password matched. Try another charset or length!\n");
 	checkpass[0] = '\0';
-	the_res(lsf_out_ptr, checkpass, start_time, time_done);
+	the_res(lsf_out_ptr, start_time);
+	return 1;
 }
 
 /* ## begin help sub ## */
@@ -414,28 +446,25 @@ void help ()
 
 /* ## begin results sub ## */
 
-void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start, char *time_done)
+void the_res(struct crack_input *lsf_out_ptr, struct tm start)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
-	struct tm act_time;
+	time_t c_time = time(NULL);
+	struct tm act_time = *localtime(&c_time);;
 	int r;
 	char message[8][81];		// result message
-	time_t read_time;			// actual time
 	FILE * fp_pf;				// progressfile
-
-	time(&read_time);
-	act_time=*localtime(&read_time);
-
-	
+	char str_duration[17];
+	convert(get_duration(mktime(&start)), str_duration);
 	sprintf(message[0], "%s\n", FIN_IDENT);
 	sprintf(message[1], "\n");
 
-	if (endpass[0] != '\0')
+	if (lsf_out.ci_dpas[0] != '\0')
 	{
 		sprintf(message[2], " The password has been located.\n");
 		sprintf(message[3], " Username : %s\n", lsf_out.ci_user);
-		sprintf(message[4], " Password : %s\n", endpass);
+		sprintf(message[4], " Password : %s\n", lsf_out.ci_dpas);
 	}
 	else
 	{
@@ -446,7 +475,7 @@ void the_res(struct crack_input *lsf_out_ptr, char * endpass, struct tm start, c
 
 	sprintf(message[5], " Started  : %s", asctime(&start));
 	sprintf(message[6], " Finished : %s", asctime(&act_time));
-	sprintf(message[7], " Duration : %s\n", time_done);
+	sprintf(message[7], " Duration : %s\n", str_duration);
 
 	for (r = 1; r <= 7; r++)
 	{
@@ -480,6 +509,7 @@ int main(int argc, char *argv[])
 	int  ui    = 10;						// console update interval
 	int  vo    = 0;							// verbose output
 	int  m     = 0;							// method used
+	int  ht    = 0;							// halt after runtime
 	int  i     = 0;							// loop variable
 	FILE *fp_lsf;							// loadsourcefile
 	FILE *fp_file;							// passwordfile
@@ -487,6 +517,7 @@ int main(int argc, char *argv[])
 	char *line = malloc(255);				// tmp buffer
 	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
+	int result	= 0;
 
 	printf("\nViper modified version by pippo60gd of the original C version by Frank4DD.\nOriginal version is located in:\nhttp://www.frank4dd.com/sw/viper/\n\n");
 
@@ -507,12 +538,19 @@ int main(int argc, char *argv[])
 			vo = 1;
 	}
 
-	if (vo)
+	/* halt ? */
+	for (i = 1; i < argc; i++)
+	{
+		if (! (strcmp (argv[i], "-ht")))
+			ht = 1;
+	}
+
+	if (vo || ht)
 	{
 		if ( (argc != 2) && (argc != 4) && (argc != 6) &&
 			(argc != 8) && (argc != 10) && (argc != 12)
 			&& (argc != 14) && (argc != 16) && (argc != 18)
-			&& (argc != 20) && (argc != 22) )
+			&& (argc != 20) && (argc != 22) && (argc != 24) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -523,7 +561,7 @@ int main(int argc, char *argv[])
 		if ( (argc != 1) && (argc != 3) && (argc != 5) &&
 			(argc != 7) && (argc != 9) && (argc != 11)
 			&& (argc != 13) && (argc != 15) && (argc != 17)
-			&& (argc != 19) && (argc != 21) )
+			&& (argc != 19) && (argc != 21) && (argc != 23) )
 		{
 			printf("missing value for argument: try viper -h\n");
 			exit(-1);
@@ -533,6 +571,7 @@ int main(int argc, char *argv[])
 /* */
 	lsf_out.ci_cset	= malloc(MAXSTR);
 	lsf_out.ci_pass	= malloc(MAXENCPWDLENGTH+1);
+	lsf_out.ci_dpas = malloc(MAXPASSWDLENGTH+1);
 	lsf_out.ci_user	= malloc(NCHRUSER);
 	lsf_out.ci_dnum	= malloc(MAXSTR);
 	lsf_out.ci_pf	= malloc(MAXSTR);
@@ -541,6 +580,7 @@ int main(int argc, char *argv[])
 	lsf_out.ci_pws	= 0;
 	lsf_out.ci_ui	= 0;
 	lsf_out.ci_vo	= 0;
+	lsf_out.ci_ht	= 0;
 /* */
 
 	/* process command line arguments */
@@ -559,10 +599,21 @@ int main(int argc, char *argv[])
 		else if (! (strcmp (argv[i], "-rf" ))) { rf   = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-m"  ))) { m    = atoi(argv[i+1]); i++;}
 		else if (! (strcmp (argv[i], "-v"  ))) { continue; }
+		else if (! (strcmp (argv[i], "-ht" ))) { continue; }
 		else { printf("Unknown argument \"%s\": try viper -h\n", argv[i]); exit(-1); }
 	}
 
 	/* break early if calling from file */
+
+	if ( ht )
+	{
+		uid_t uid = getuid();
+		if (uid)
+		{
+			printf("You must be root to run halt option.\n");
+			exit (1);
+		}
+	}
 
 	if (lsf)
 	{
@@ -594,8 +645,9 @@ int main(int argc, char *argv[])
 		fscanf (fp_lsf, "%s", lsf_out.ci_pf);
 		fscanf (fp_lsf, "%d", &lsf_out.ci_ui);
 		fclose(fp_lsf);
-		lsf_out.ci_rf = 0;
+		lsf_out.ci_rf = rf;
 		lsf_out.ci_vo = vo;
+		lsf_out.ci_ht = ht;
 		printf("...loaded parameters from file %s.\n", lsf);
 		if ( m == 0 )
 			crack_bruteforce(&lsf_out);
@@ -690,17 +742,20 @@ int main(int argc, char *argv[])
 	strcpy (lsf_out.ci_user, user);
 	lsf_out.ci_ui = ui;
 	lsf_out.ci_vo = vo;
+	lsf_out.ci_ht = ht;
 	printf("...command line parameters loaded.\n");
 	if (!m)
-		crack_bruteforce(&lsf_out);
+		result = crack_bruteforce(&lsf_out);
 	else
-		crack_dict(&lsf_out, ldf);
-
+		result = crack_dict(&lsf_out, ldf);
+	if (!result)
+		printf("%s", lsf_out.ci_dpas);
 	free(pass);
 	free(line);
 	free(vp_stat);
 	free(lsf_out.ci_cset);
 	free(lsf_out.ci_pass);
+	free(lsf_out.ci_dpas);
 	free(lsf_out.ci_user);
 	free(lsf_out.ci_dnum);
 	free(lsf_out.ci_pf);
