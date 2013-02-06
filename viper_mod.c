@@ -40,6 +40,7 @@ struct crack_input
 	char *ci_dnum;		// status for each digit
 	char *ci_pf;		// progressfile name
 	int  ci_vo;			// verbose output
+	int  ci_ht;			// halt
 };
 
 /*                                                                    */
@@ -49,7 +50,7 @@ void chop(char *);
 int crack_dict(struct crack_input *, char *);
 int crack_bruteforce(struct crack_input *);
 void help (void);
-void the_res(struct crack_input *, struct tm);
+void the_res(struct crack_input *, time_t);
 double get_duration(time_t);
 
 /*                                                                    */
@@ -88,7 +89,7 @@ void convert(double sec_dur, char * strf_duration)
 void chop(char *word)
 {
 	int lenword;
-	lenword=strlen(word);
+	lenword = strlen(word);
 	if( word[lenword-1] == '\n') 
 		word[lenword-1] = '\0';
 }
@@ -141,7 +142,7 @@ int crack_dict(struct crack_input *lsf_out_ptr, char *dict)
 			printf("the password is: %s\n",word);
 			fclose(words);
 			strcpy(lsf_out.ci_dpas, word);
-			the_res(lsf_out_ptr, *localtime(&start_time));
+			//the_res(lsf_out_ptr, *localtime(&start_time));
 			return 0;
 		}
 		if(i%100 == 0)
@@ -289,10 +290,6 @@ int crack_bruteforce(struct crack_input *lsf_out_ptr)
 				printf("We got it!!!! ----> %s\n", checkpass); 
 #endif
 				strcpy(lsf_out.ci_dpas, checkpass); // if password is found
-				act_time=*localtime(&read_time);
-				duration = (double) difftime(mktime(&act_time), mktime(&start_time));
-				convert(duration, time_done);
-				the_res(lsf_out_ptr, start_time);
 				return 0;
 			}
 
@@ -417,7 +414,6 @@ int crack_bruteforce(struct crack_input *lsf_out_ptr)
 	/* if we reach this point, no password matched. Try another charset or length! */
 	printf("No password matched. Try another charset or length!\n");
 	checkpass[0] = '\0';
-	the_res(lsf_out_ptr, start_time);
 	return 1;
 }
 
@@ -438,7 +434,7 @@ void help ()
 	printf("  -pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
 	printf("  -ui #        Console update interval (in minutes - default 10)\n");
 	printf("  -v           Verbose output\n");
-	printf("  -ht          Halt the system after run\n")
+	printf("  -ht          Halt the system after run\n");
 	printf("  -md          Dictionary crack mode, brute-force is default mode\n\n");
 
 	printf("Internal character sets:\n");
@@ -448,17 +444,16 @@ void help ()
 
 /* ## begin results sub ## */
 
-void the_res(struct crack_input *lsf_out_ptr, struct tm start)
+void the_res(struct crack_input *lsf_out_ptr, time_t start)
 {
 	struct crack_input lsf_out;
 	memcpy(&lsf_out, lsf_out_ptr, sizeof(struct crack_input));
-	time_t c_time = time(NULL);
-	struct tm act_time = *localtime(&c_time);
+	time_t current_time = time(NULL);
 	int r;
 	char message[8][81];		// result message
 	FILE * fp_pf;				// progressfile
 	char str_duration[17];
-	convert(get_duration(mktime(&start)), str_duration);
+	convert(get_duration(start), str_duration);
 	sprintf(message[0], "%s\n", FIN_IDENT);
 	sprintf(message[1], "\n");
 
@@ -475,8 +470,8 @@ void the_res(struct crack_input *lsf_out_ptr, struct tm start)
 		sprintf(message[4], " Password : %s\n", "** unknown **");
 	}
 
-	sprintf(message[5], " Started  : %s", asctime(&start));
-	sprintf(message[6], " Finished : %s", asctime(&act_time));
+	sprintf(message[5], " Started  : %s", ctime(&start));
+	sprintf(message[6], " Finished : %s", ctime(&current_time));
 	sprintf(message[7], " Duration : %s\n", str_duration);
 
 	for (r = 1; r <= 7; r++)
@@ -485,12 +480,31 @@ void the_res(struct crack_input *lsf_out_ptr, struct tm start)
 	}
 
 	if(strlen(lsf_out.ci_pf))
-	{	if ( (fp_pf = fopen(lsf_out.ci_pf, "w")) == NULL )
-		{	printf("Error: Can't open %s!\n", lsf_out.ci_pf);
-			exit(-1); }
-
+	{
+		if ( (fp_pf = fopen(lsf_out.ci_pf, "w")) == NULL )
+		{
+			printf("Error: Can't open %s!\n", lsf_out.ci_pf);
+			exit(-1);
+		}
 		for (r = 0; r <=7; r++) { fprintf(fp_pf, message[r]); }
 		fclose(fp_pf);
+	}
+	else
+	{
+		if (lsf_out.ci_ht)
+		{
+			char session[17];
+			sprintf(session, "%d", (int) getpid());
+			strcat(session, ".viper");
+			printf("The session will be saved in the %s file\n", session);
+			if ((fp_pf = fopen(session, "w")) == NULL)
+			{
+				printf("Error: Can't open %s!\n", lsf_out.ci_pf);
+				return;
+			}
+			for (r = 0; r <=7; r++) { fprintf(fp_pf, message[r]); }
+			fclose(fp_pf);
+		}
 	}
 }
 
@@ -516,9 +530,8 @@ int main(int argc, char *argv[])
 	FILE *fp_file;							// passwordfile
 	FILE *fp_cset;							// character set file
 	char *line = malloc(255);				// tmp buffer
-	char *vp_stat = malloc(255);			// last saved status
 	struct crack_input lsf_out;
-	int ret_value = 0;
+	time_t start = time(NULL);
 
 	printf("\nViper modified version by pippo60gd of the original C version by Frank4DD.\nOriginal version is located in:\nhttp://www.frank4dd.com/sw/viper/\n\n");
 
@@ -532,16 +545,6 @@ int main(int argc, char *argv[])
 		exit(0);
 	}
 	
-/*	for (i = 1; i < argc; i++)
-	{
-		if (! (strcmp (argv[i], "-v")))
-			vo = 1;
-		else if (! (strcmp (argv[i], "-ht")))
-			ht = 1;
-		else if (! (strcmp (argv[i], "-md")))
-			md = 1;
-	}
-*/	
 	lsf_out.ci_cset	= malloc(MAXSTR);
 	lsf_out.ci_pass	= malloc(MAXENCPWDLENGTH+1);
 	lsf_out.ci_dpas = malloc(MAXPASSWDLENGTH+1);
@@ -553,6 +556,7 @@ int main(int argc, char *argv[])
 	lsf_out.ci_pws	= 0;
 	lsf_out.ci_ui	= 0;
 	lsf_out.ci_vo	= 0;
+	lsf_out.ci_ht	= 0;
 	
 	/* process command line arguments */
 	for (i = 1; i < argc; i++)
@@ -589,12 +593,13 @@ int main(int argc, char *argv[])
 	
 	if (lsf)
 	{
+		char *vp_stat = malloc(17);
 		if ( (fp_lsf = fopen(lsf, "r+")) == NULL )
 		{
 			printf("Error: Can't open %s!\n", lsf);
 			exit(-1);
 		}
-		fscanf (fp_lsf, "%s", vp_stat);
+		fscanf (fp_lsf, "%s", &vp_stat[0]);
 		/* check to see if run has been completed */
 		if (! (strcmp (vp_stat, FIN_IDENT)))
 		{
@@ -618,9 +623,9 @@ int main(int argc, char *argv[])
 		lsf_out.ci_vo = vo;
 		printf("...loaded parameters from file %s.\n", lsf);
 		if (!md)
-			ret_value = crack_bruteforce(&lsf_out);
+			crack_bruteforce(&lsf_out);
 		else
-			ret_value = crack_dict(&lsf_out, ldf);
+			crack_dict(&lsf_out, ldf);
 	}
 	else
 	{
@@ -706,16 +711,22 @@ int main(int argc, char *argv[])
 		strcpy (lsf_out.ci_user, user);
 		lsf_out.ci_ui = ui;
 		lsf_out.ci_vo = vo;
+		lsf_out.ci_ht = ht;
 		printf("...command line parameters loaded.\n");
 		if (!md)
-			ret_value = crack_bruteforce(&lsf_out);
+			crack_bruteforce(&lsf_out);
 		else
-			ret_value = crack_dict(&lsf_out, ldf);
+			crack_dict(&lsf_out, ldf);
 	}
-
+	the_res(&lsf_out, start);
+	if (ht)
+	{
+		printf("The system will be stopped!");
+		system("/usr/bin/env halt");
+	}
 	free(pass);
 	free(line);
-	free(vp_stat);
+	//free(vp_stat);
 	free(lsf_out.ci_cset);
 	free(lsf_out.ci_pass);
 	free(lsf_out.ci_dpas);
@@ -723,11 +734,6 @@ int main(int argc, char *argv[])
 	free(lsf_out.ci_dnum);
 	free(lsf_out.ci_pf);
 	printf("\nViper exiting...\n");
-	if (ht)
-	{
-		printf("The system will be stopped!");
-		system("/usr/bin/env halt");
-	}
 	return 0;
 }
 
