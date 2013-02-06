@@ -285,10 +285,10 @@ int crack_bruteforce(struct crack_input *lsf_out_ptr)
 			if (! strcmp(testpass, lsf_out.ci_pass))
 			{
 				/* debug only */
-//#ifdef DEBUG
-				printf("We got it!!!! ----> %s\n", checkpass);
-//#endif
-				strcpy(lsf_out.ci_dpas, checkpass);
+#ifdef DEBUG
+				printf("We got it!!!! ----> %s\n", checkpass); 
+#endif
+				strcpy(lsf_out.ci_dpas, checkpass); // if password is found
 				act_time=*localtime(&read_time);
 				duration = (double) difftime(mktime(&act_time), mktime(&start_time));
 				convert(duration, time_done);
@@ -438,6 +438,7 @@ void help ()
 	printf("  -pwl #       Maximum password length (default %d - maximum %d)\n", DEFAULTPWLENGTH, MAXPASSWDLENGTH);
 	printf("  -ui #        Console update interval (in minutes - default 10)\n");
 	printf("  -v           Verbose output\n");
+	printf("  -ht          Halt the system after run\n")
 	printf("  -m #         Crack method: 0 (default) brute-force mode, 1 dictionary mode\n\n");
 	printf("Internal character sets:\n");
 	for (i=0;i<5;i++)
@@ -748,8 +749,6 @@ int main(int argc, char *argv[])
 		result = crack_bruteforce(&lsf_out);
 	else
 		result = crack_dict(&lsf_out, ldf);
-	if (!result)
-		printf("%s", lsf_out.ci_dpas);
 	free(pass);
 	free(line);
 	free(vp_stat);
